@@ -1,6 +1,8 @@
 var ga = require("darwin-js");
 var fetch = require("node-fetch");
-
+var express = require("express")();
+var bodyParser = require("body-parser");
+var bestOne;
 let pessoas = [
   { name: "daniel", lat: -5.846827, lng: -35.210825 },
   { name: "ricardo", lat: -5.826471, lng: -35.208077 },
@@ -33,9 +35,9 @@ const calcularDistancia = (pessoa, escola, callback) => {
     }&key=AIzaSyBcMFCfbdJdD3__pdiZWMU9Ab5PS2N-pYo`
   )
     .then(res => res.text())
-    .then(body =>
-      callback(JSON.parse(body).rows[0].elements[0].distance.value)
-    );
+    .then(body => {
+      callback(JSON.parse(body).rows[0].elements[0].distance.value);
+    });
 };
 const calcularDistancias = () =>
   pessoas.forEach((pessoa, i) =>
@@ -128,8 +130,7 @@ var options = {
     return population[biggerI].individual;
   },
   crossover: (parent1, parent2) => {
-    // Combine parent1 and parent2 somehow
-    return [child1, child2];
+    return [crossover(parent1, parent2), crossover(parent1, parent2)];
   },
   mutation: individual => {
     let individualCopy = individual;
@@ -144,18 +145,24 @@ var options = {
     ];
     // Mutate individual (or return unchanged)
     // ...
-    return individualCopy;
+    return individualCopy.map(item => {
+      return {
+        pessoa: item.pessoa,
+        escola: item.escola,
+        distancia: distancias[item.pessoa][item.escola]
+      };
+    });
   },
-  iterations: 100000,
+  iterations: 1000,
   stop: fitness => {
     // Return true if fitness is high enough. Will
     // terminate G.A. even if it hasn't iterated 10000 times.
     return false;
-  },
-  stats: (fitnesses, best) => {
-    console.log("Fitnesses of current generation: " + fitnesses);
-    console.log("Best performing individual: %j", best);
   }
+  // stats: (fitnesses, best) => {
+  //   console.log("Fitnesses of current generation: " + fitnesses);
+  //   console.log("Best performing individual: %j", best);
+  // }
 };
 
 // Run genetic algorithm
@@ -164,28 +171,70 @@ setTimeout(() => {
   ga
     .run(options)
     .then(result => {
-      //   console.log("Best individual: " + result.best.individual);
-      //   console.log("Best individual's fitness: " + result.best.fitness);
-      //   console.log("Last population: %j", result.population);
+      bestOne = result.best.individual;
+      console.log("Best individual's fitness: " + result.best.fitness);
+      console.log("Best individual: " + JSON.stringify(result.best.individual));
+      // console.log("Last population: %j", result.population);
     })
     .catch(err => {
       console.log("Oops: " + err);
     });
-  //   console.log(
-  //     myPopulation[0].map(item => {
-  //       return {
-  //         pessoa: item.pessoa,
-  //         escola: item.escola,
-  //         distancia: distancias[item.pessoa][item.escola]
-  //       };
-  //     }),
-  //     " ",
-  //     myPopulation[1].map(item => {
-  //       return {
-  //         pessoa: item.pessoa,
-  //         escola: item.escola,
-  //         distancia: distancias[item.pessoa][item.escola]
-  //       };
-  //     })
-  //   );
+
+  // let p1 = myPopulation[0].map(item => {
+  //   return {
+  //     pessoa: item.pessoa,
+  //     escola: item.escola,
+  //     distancia: distancias[item.pessoa][item.escola]
+  //   };
+  // });
+  // let p2 = myPopulation[1].map(item => {
+  //   return {
+  //     pessoa: item.pessoa,
+  //     escola: item.escola,
+  //     distancia: distancias[item.pessoa][item.escola]
+  //   };
+  // });
+  // console.log(p1, p2, crossover(p1, p2));
 }, 5000);
+
+const crossover = (parent1, parent2) => {
+  let capacidades = escolas.map(item => item.capacidade);
+  const findSchollCapacity = item => {
+    // console.log(capacidades);
+    if (capacidades[item.escola]) {
+      return item;
+      capacidades[item.escola] = capacidades[item.escola] - 1;
+    } else {
+      let newSchool = capacidades.findIndex(item => item > 0);
+      capacidades[newSchool] = capacidades[newSchool] - 1;
+      return Object.assign({}, item, {
+        escola: newSchool,
+        distancia: distancias[item.pessoa][newSchool]
+      });
+    }
+  };
+  let parent2Copy = parent2.sort(function(a, b) {
+    return a.pessoa - b.pessoa;
+  });
+  return parent1
+    .sort(function(a, b) {
+      return a.pessoa - b.pessoa;
+    })
+    .map((item, i) => {
+      if (Math.floor(Math.random() * 2)) return findSchollCapacity(item);
+      return findSchollCapacity(parent2Copy[i]);
+    });
+};
+
+express.use(bodyParser());
+express.get("/", (req, res) => {
+  console.log("olha ai");
+  res.setHeader("Content-Type", "application/json");
+  res.json({ bestOne: "aaa" });
+});
+express.get("/getBest", (req, res) => {
+  console.log("olha ai, chegou");
+  res.setHeader("Content-Type", "application/json");
+  res.json(bestOne);
+});
+express.listen(3001, () => console.log("subiu o server"));

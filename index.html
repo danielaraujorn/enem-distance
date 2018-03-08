@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>teste</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $.ajax({
+                headers: { "Access-Control-Allow-Origin": "true" }, url: "http://localhost:3001/getBest", crossDomain: false, success: function (result) {
+                    console.log(result)
+                }
+            });
+        });
+    </script>
+</head>
+
+<body>
+
+</body>
+
+</html>
