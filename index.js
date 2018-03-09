@@ -2,6 +2,7 @@ var ga = require("darwin-js");
 var fetch = require("node-fetch");
 var express = require("express")();
 var bodyParser = require("body-parser");
+var path = require("path");
 var bestOne;
 let pessoas = [
   { name: "daniel", lat: -5.846827, lng: -35.210825 },
@@ -17,8 +18,8 @@ let pessoas = [
 ];
 
 let escolas = [
-  { name: "sebrae", lat: -5.825073, lng: -35.21151, capacidade: 2 },
-  { name: "hipocrates", lat: -5.846136, lng: -35.21281, capacidade: 1 },
+  { name: "sebrae", lat: -5.825073, lng: -35.21151, capacidade: 5 },
+  { name: "hipocrates", lat: -5.846136, lng: -35.21281, capacidade: 5 },
   { name: "ufrn", lat: -5.839371, lng: -35.200773, capacidade: 10 }
 ];
 
@@ -93,7 +94,28 @@ const traduzir = array =>
 
 // console.log(generateRandomCombination());
 // Implement on your own
-var myPopulation = [1, 2, 3, 4].map(() => generateRandomCombination());
+var myPopulation = [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12,
+  13,
+  14,
+  15,
+  16,
+  17,
+  18,
+  19,
+  20
+].map(() => generateRandomCombination());
 var options = {
   // Always copy over best individual without modification
   // to the next generation.
@@ -108,12 +130,20 @@ var options = {
     //     .map(item => distancias[item.pessoa][item.escola])
     //     .reduce((prev, item) => prev + item)
     // );
-    return (
-      1000000 /
-      individual
-        .map(item => distancias[item.pessoa][item.escola])
-        .reduce((prev, item) => prev + item)
-    );
+    // console.log(
+    //   individual,
+    //   individual
+    //     .map(item => distancias[item.pessoa][item.escola])
+    //     .reduce((prev, item) => prev + item)
+    // );
+    return new Promise((resolve, reject) => {
+      resolve(
+        10000000 /
+          individual
+            .map(item => distancias[item.pessoa][item.escola])
+            .reduce((prev, item) => prev + item)
+      );
+    });
   },
   selection: population => {
     // Return an individual population[k].individual based on
@@ -130,6 +160,7 @@ var options = {
     return population[biggerI].individual;
   },
   crossover: (parent1, parent2) => {
+    console.log("1", parent1, "2", parent2, "\n");
     return [crossover(parent1, parent2), crossover(parent1, parent2)];
   },
   mutation: individual => {
@@ -153,16 +184,20 @@ var options = {
       };
     });
   },
-  iterations: 1000,
+  iterations: 1000000,
   stop: fitness => {
     // Return true if fitness is high enough. Will
     // terminate G.A. even if it hasn't iterated 10000 times.
     return false;
+  },
+  stats: (fitnesses, best) => {
+    // console.log(
+    //   "Fitnesses of current generation: " +
+    //     10000000 / fitnesses.reduce((prev, item) => prev + item) +
+    //     "\n"
+    // );
+    // console.log("Best performing individual: %j", best);
   }
-  // stats: (fitnesses, best) => {
-  //   console.log("Fitnesses of current generation: " + fitnesses);
-  //   console.log("Best performing individual: %j", best);
-  // }
 };
 
 // Run genetic algorithm
@@ -171,7 +206,13 @@ setTimeout(() => {
   ga
     .run(options)
     .then(result => {
-      bestOne = result.best.individual;
+      bestOne = result.best.individual.map(item => {
+        return {
+          pessoa: pessoas[item.pessoa],
+          escola: escolas[item.escola],
+          escolaIndex: item.escola
+        };
+      });
       console.log("Best individual's fitness: " + result.best.fitness);
       console.log("Best individual: " + JSON.stringify(result.best.individual));
       // console.log("Last population: %j", result.population);
@@ -179,33 +220,19 @@ setTimeout(() => {
     .catch(err => {
       console.log("Oops: " + err);
     });
-
-  // let p1 = myPopulation[0].map(item => {
-  //   return {
-  //     pessoa: item.pessoa,
-  //     escola: item.escola,
-  //     distancia: distancias[item.pessoa][item.escola]
-  //   };
-  // });
-  // let p2 = myPopulation[1].map(item => {
-  //   return {
-  //     pessoa: item.pessoa,
-  //     escola: item.escola,
-  //     distancia: distancias[item.pessoa][item.escola]
-  //   };
-  // });
-  // console.log(p1, p2, crossover(p1, p2));
-}, 5000);
+}, 4000);
 
 const crossover = (parent1, parent2) => {
-  let capacidades = escolas.map(item => item.capacidade);
+  if (Math.random() > 0.2) return [parent1, parent2];
+
+  let capacidades = escolas.map((item, i) => item.capacidade);
   const findSchollCapacity = item => {
     // console.log(capacidades);
     if (capacidades[item.escola]) {
       return item;
       capacidades[item.escola] = capacidades[item.escola] - 1;
     } else {
-      let newSchool = capacidades.findIndex(item => item > 0);
+      let newSchool = capacidades.findIndex(i => i > 0);
       capacidades[newSchool] = capacidades[newSchool] - 1;
       return Object.assign({}, item, {
         escola: newSchool,
@@ -221,16 +248,18 @@ const crossover = (parent1, parent2) => {
       return a.pessoa - b.pessoa;
     })
     .map((item, i) => {
-      if (Math.floor(Math.random() * 2)) return findSchollCapacity(item);
+      if (
+        distancias[item.pessoa][item.escola] >
+        distancias[parent2Copy[i].pessoa][parent2Copy[i].escola]
+      )
+        return findSchollCapacity(item);
       return findSchollCapacity(parent2Copy[i]);
     });
 };
 
 express.use(bodyParser());
-express.get("/", (req, res) => {
-  console.log("olha ai");
-  res.setHeader("Content-Type", "application/json");
-  res.json({ bestOne: "aaa" });
+express.get("/", function(req, res) {
+  res.sendFile(path.join(__dirname + "/index.html"));
 });
 express.get("/getBest", (req, res) => {
   console.log("olha ai, chegou");

@@ -1,0 +1,27 @@
+{
+  "name": "enem-distance",
+  "version": "1.0.0",
+  "description": "avaliar a melhor distribuição de pessoas por escola no enem usando a tecnica de algoritmos genéticos",
+  "main": "index.js",
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "darwin-js": "^0.4.0",
+    "express": "^4.16.2",
+    "gene-lib": "^1.0.0",
+    "node-fetch": "^2.1.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/danielaraujorn/enem-distance.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/danielaraujorn/enem-distance/issues"
+  },
+  "homepage": "https://github.com/danielaraujorn/enem-distance#readme"
+}

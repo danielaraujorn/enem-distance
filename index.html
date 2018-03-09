@@ -7,18 +7,74 @@
     <title>teste</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <script>
-        $(document).ready(function () {
-            $.ajax({
-                headers: { "Access-Control-Allow-Origin": "true" }, url: "http://localhost:3001/getBest", crossDomain: false, success: function (result) {
-                    console.log(result)
-                }
-            });
-        });
-    </script>
 </head>
 
-<body>
+<body style="margin:0">
+    <div id="map" style="width:100vw;height:100vh;background:yellow"></div>
+    <script>
+        function initMap() {
+            var directionsDisplay;
+            var directionsService
+            function renderDirections(result, color) {
+                var directionsRenderer = new google.maps.DirectionsRenderer({
+                    polylineOptions: {
+                        strokeColor: color
+                    }, suppressMarkers: true
+                });
+                directionsRenderer.setMap(map);
+                directionsRenderer.setDirections(result);
+            }
+
+            function requestDirections(color, start, end) {
+                directionsService.route({
+                    origin: start,
+                    destination: end,
+                    travelMode: google.maps.DirectionsTravelMode.DRIVING
+                }, function (result) {
+                    renderDirections(result, color);
+                });
+            }
+            directionsService = new google.maps.DirectionsService()
+            directionsDisplay = new google.maps.DirectionsRenderer();
+            var pontosPessoas = []
+            var pontosEscolas = []
+            var rotas = []
+            var map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 14,
+                center: { lat: -5.839597, lng: -35.209195 }
+            });
+            directionsDisplay.setMap(map);
+            $(document).ready(function () {
+                $.ajax({
+                    headers: { "Access-Control-Allow-Origin": "true" }, url: "http://localhost:3001/getBest", crossDomain: false, success: function (result) {
+                        console.log(result)
+                        escolasColors = []
+                        for (let i = 0; i < result.length; i++) {
+                            if (!escolasColors[result[i].escolaIndex]) {
+                                escolasColors[result[i].escolaIndex] = '#' + Math.floor(Math.random() * 16777215).toString(16)
+                            }
+                            pontosPessoas.push(new google.maps.Marker({
+                                position: { lat: result[i].pessoa.lat, lng: result[i].pessoa.lng },
+                                map: map,
+                                icon: {
+                                    path: google.maps.SymbolPath.CIRCLE,
+                                    strokeColor: escolasColors[result[i].escolaIndex],
+                                    scale: 3
+                                },
+                            }))
+                            pontosEscolas.push(new google.maps.Marker({
+                                position: { lat: result[i].escola.lat, lng: result[i].escola.lng },
+                                map: map,
+                            }))
+                            requestDirections(escolasColors[result[i].escolaIndex], new google.maps.LatLng(result[i].pessoa.lat, result[i].pessoa.lng), new google.maps.LatLng(result[i].escola.lat, result[i].escola.lng))
+                        }
+                    }
+                });
+            });
+        }
+    </script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBcMFCfbdJdD3__pdiZWMU9Ab5PS2N-pYo&callback=initMap">
+    </script>
 
 </body>
 
