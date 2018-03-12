@@ -14,7 +14,8 @@ let pessoas = [
   { name: "marcelo", lat: -5.840823, lng: -35.214047 },
   { name: "dani", lat: -5.844085, lng: -35.214852 },
   { name: "marconi", lat: -5.846814, lng: -35.21472 },
-  { name: "sayonara", lat: -5.849708, lng: -35.203186 }
+  { name: "sayonara", lat: -5.849708, lng: -35.203186 },
+  { name: "patricio", lat: -5.82287, lng: -35.216341 }
 ];
 
 let escolas = [
@@ -166,7 +167,7 @@ var options = {
     //     10000000 / fitnesses.reduce((prev, item) => prev + item) +
     //     "\n"
     // );
-    console.log(fitnesses, "\n");
+    // console.log(fitnesses, "\n");
     // console.log("Best performing individual: %j", best);
   }
 };
