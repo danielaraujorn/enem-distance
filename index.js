@@ -15,7 +15,12 @@ let pessoas = [
   { name: "dani", lat: -5.844085, lng: -35.214852 },
   { name: "marconi", lat: -5.846814, lng: -35.21472 },
   { name: "sayonara", lat: -5.849708, lng: -35.203186 },
-  { name: "patricio", lat: -5.82287, lng: -35.216341 }
+  { name: "patricio", lat: -5.821139, lng: -35.215744 },
+  { name: "fire", lat: -5.8259, lng: -35.220698 },
+  { name: "wesley", lat: -5.828765, lng: -35.219058 },
+  { name: "pedro", lat: -5.830514, lng: -35.20227 },
+  { name: "amanda", lat: -5.850647, lng: -35.201349 },
+  { name: "dione", lat: -5.861826, lng: -35.201376 }
 ];
 
 let escolas = [
