@@ -91,31 +91,34 @@ const traduzir = array =>
       escola: escolas[item.escola].name
     };
   });
-
+getIndividual = (key, population) => {
+  const sumFit = population.map(item => item.fitness).reduce((a, b) => a + b);
+  const vRoullete = population.map(item => {
+    return { fitness: item.fitness / sumFit };
+  });
+  let sum = 0;
+  for (let i = 0; i < vRoullete.length; i++) {
+    vRoullete[i].min = sum;
+    vRoullete[i].max = sum + vRoullete[i].fitness;
+    sum += vRoullete[i].fitness;
+  }
+  return population[
+    vRoullete.findIndex(item => key > item.min && key <= item.max)
+  ].individual;
+  // v.forEach(individual => {
+  //   if (
+  //     Math.min(individual.relativeBoundaries.max, key) ==
+  //     Math.max(individual.relativeBoundaries.min, key)
+  //   ) {
+  //     return individual;
+  //   }
+  // });
+};
 // console.log(generateRandomCombination());
 // Implement on your own
-var myPopulation = [
-  1,
-  2,
-  3,
-  4,
-  5,
-  6,
-  7,
-  8,
-  9,
-  10,
-  11,
-  12,
-  13,
-  14,
-  15,
-  16,
-  17,
-  18,
-  19,
-  20
-].map(() => generateRandomCombination());
+var myPopulation = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(() =>
+  generateRandomCombination()
+);
 var options = {
   // Always copy over best individual without modification
   // to the next generation.
@@ -145,46 +148,13 @@ var options = {
       );
     });
   },
-  selection: population => {
-    // Return an individual population[k].individual based on
-    // population[k].fitness.
-    // var k = ...
-    let biggerN = 0;
-    let biggerI = 0;
-    for (let i = 0; i < population.length; i++) {
-      if (population[i].fitness > biggerN) {
-        biggerN = population[i].fitness;
-        biggerI = i;
-      }
-    }
-    return population[biggerI].individual;
-  },
+  selection: population => getIndividual(Math.random(), population),
   crossover: (parent1, parent2) => {
-    console.log("1", parent1, "2", parent2, "\n");
+    // console.log("1", parent1, "2", parent2, "\n");
     return [crossover(parent1, parent2), crossover(parent1, parent2)];
   },
-  mutation: individual => {
-    let individualCopy = individual;
-    let indice1 = Math.floor(Math.random() * individual.length);
-    let indice2 = Math.floor(Math.random() * individual.length);
-    while (indice1 === indice2) {
-      indice2 = Math.floor(Math.random() * individual.length);
-    }
-    [individualCopy[indice1].pessoa, individualCopy[indice2].pessoa] = [
-      individualCopy[indice2].pessoa,
-      individualCopy[indice1].pessoa
-    ];
-    // Mutate individual (or return unchanged)
-    // ...
-    return individualCopy.map(item => {
-      return {
-        pessoa: item.pessoa,
-        escola: item.escola,
-        distancia: distancias[item.pessoa][item.escola]
-      };
-    });
-  },
-  iterations: 1000000,
+  mutation: individual => generateRandomCombination(),
+  iterations: 10000,
   stop: fitness => {
     // Return true if fitness is high enough. Will
     // terminate G.A. even if it hasn't iterated 10000 times.
@@ -196,6 +166,7 @@ var options = {
     //     10000000 / fitnesses.reduce((prev, item) => prev + item) +
     //     "\n"
     // );
+    console.log(fitnesses, "\n");
     // console.log("Best performing individual: %j", best);
   }
 };
@@ -223,11 +194,10 @@ setTimeout(() => {
 }, 4000);
 
 const crossover = (parent1, parent2) => {
-  if (Math.random() > 0.2) return [parent1, parent2];
+  // console.log("crossover in", parent1, "\n", parent2, "\n");
 
   let capacidades = escolas.map((item, i) => item.capacidade);
   const findSchollCapacity = item => {
-    // console.log(capacidades);
     if (capacidades[item.escola]) {
       return item;
       capacidades[item.escola] = capacidades[item.escola] - 1;
@@ -235,8 +205,7 @@ const crossover = (parent1, parent2) => {
       let newSchool = capacidades.findIndex(i => i > 0);
       capacidades[newSchool] = capacidades[newSchool] - 1;
       return Object.assign({}, item, {
-        escola: newSchool,
-        distancia: distancias[item.pessoa][newSchool]
+        escola: newSchool
       });
     }
   };
@@ -248,6 +217,7 @@ const crossover = (parent1, parent2) => {
       return a.pessoa - b.pessoa;
     })
     .map((item, i) => {
+      // console.log(item, parent2Copy[i]);
       if (
         distancias[item.pessoa][item.escola] >
         distancias[parent2Copy[i].pessoa][parent2Copy[i].escola]
