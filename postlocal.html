@@ -11,14 +11,36 @@
 <body>
     <!-- <script src="http://cdn.socket.io/socket.io-1.2.0.js"></script>
     <script src="http://code.jquery.com/jquery-1.11.1.js"></script> -->
+
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBcMFCfbdJdD3__pdiZWMU9Ab5PS2N-pYo&callback=initMap"></script>
     <form action="/postlocal" method="POST">
         <input name="local[name]" id="name" placeholder="name" required autocomplete="off" />
         <input name="local[capacity]" id="email" type="number" placeholder="capacidade" required autocomplete="off" />
         <input name="local[lat]" id="latitude" placeholder="latitude" required autocomplete="off" />
         <input name="local[lng]" id="longitude" placeholder="longitude" required autocomplete="off" />
         <input type="submit" />
+        <div id="map" style="width:90vw;height:90vh;background:#eee"></div>
     </form>
     <script>
+        var map
+        var marker
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 16,
+                center: { lat: -5.839597, lng: -35.209195 }
+            });
+            marker = new google.maps.Marker({
+                position: { lat: -5.839597, lng: -35.209195 },
+                map: map
+            });
+            document.getElementById("latitude").value = -5.839597
+            document.getElementById("longitude").value = -35.209195
+            map.addListener('click', (data) => {
+                marker.setPosition(data.latLng)
+                document.getElementById("latitude").value = data.latLng.lat()
+                document.getElementById("longitude").value = data.latLng.lng()
+            });
+        }
         function getLocation() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(showPosition);
@@ -30,6 +52,8 @@
         function showPosition(position) {
             document.getElementById("latitude").value = position.coords.latitude
             document.getElementById("longitude").value = position.coords.longitude
+            marker.setPosition({ lat: position.coords.latitude, lng: position.coords.longitude });
+            map.setCenter(new google.maps.LatLng(position.coords.latitude, position.coords.longitude))
         }
         getLocation()
     </script>
