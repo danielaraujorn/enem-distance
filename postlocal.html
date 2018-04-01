@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Post Local</title>
+</head>
+
+<body>
+    <!-- <script src="http://cdn.socket.io/socket.io-1.2.0.js"></script>
+    <script src="http://code.jquery.com/jquery-1.11.1.js"></script> -->
+    <form action="/postlocal" method="POST">
+        <input name="local[name]" id="name" placeholder="name" required autocomplete="off" />
+        <input name="local[capacity]" id="email" type="number" placeholder="capacidade" required autocomplete="off" />
+        <input name="local[lat]" id="latitude" placeholder="latitude" required autocomplete="off" />
+        <input name="local[lng]" id="longitude" placeholder="longitude" required autocomplete="off" />
+        <input type="submit" />
+    </form>
+    <script>
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition);
+            } else {
+                alert("Geolocation is not supported by this browser.");
+            }
+        }
+
+        function showPosition(position) {
+            document.getElementById("latitude").value = position.coords.latitude
+            document.getElementById("longitude").value = position.coords.longitude
+        }
+        getLocation()
+    </script>
+</body>
+
+</html>

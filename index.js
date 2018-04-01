@@ -1,9 +1,51 @@
 var ga = require("darwin-js");
 var fetch = require("node-fetch");
 var express = require("express")();
+var server = require("http").createServer(express);
+var io = require("socket.io")(server);
 var bodyParser = require("body-parser");
 var path = require("path");
 var bestOne;
+
+var thinky = require("thinky")({
+  db: "enem_distance",
+  host: "localhost",
+  port: 28015
+});
+var type = thinky.type;
+const uuidv1 = require("uuid/v1");
+
+var User = thinky.createModel("user", {
+  id: type.string().default(uuidv1()),
+  name: type.string().required(),
+  email: type.string().required(),
+  locomotion: type.string().required(),
+  // city,country,state,street,number
+  lat: type.number().required(),
+  lng: type.number().required()
+});
+
+var Distance = thinky.createModel("distance", {
+  id: type.string().default(uuidv1()),
+  userId: type.string().required(),
+  localId: type.string().required(),
+  distance: type.number().required()
+});
+
+var Local = thinky.createModel("local", {
+  id: type.string().default(uuidv1()),
+  name: type.string().required(),
+  capacity: type.number().required(),
+  // city,country,state,street,number
+  lat: type.number().required(),
+  lng: type.number().required()
+});
+
+User.hasMany(Distance, "rotas", "id", "userId");
+Local.hasMany(Distance, "rotas", "id", "localId");
+Distance.belongsTo(Local, "local", "localId", "id");
+Distance.belongsTo(User, "user", "userId", "id");
+
 let pessoas = [
   { name: "daniel", lat: -5.846827, lng: -35.210825 },
   { name: "ricardo", lat: -5.826471, lng: -35.208077 },
@@ -37,8 +79,8 @@ const calcularDistancia = (pessoa, escola, callback) => {
   fetch(
     `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${
       pessoa.lat
-    },${pessoa.lng}&destinations=${escola.lat},${
-      escola.lng
+    },${pessoa.lng}&destinations=${escola.lat},${escola.lng}${
+      pessoa.locomotion ? "&mode=" + pessoa.locomotion : ""
     }&key=AIzaSyBcMFCfbdJdD3__pdiZWMU9Ab5PS2N-pYo`
   )
     .then(res => res.text())
@@ -179,25 +221,25 @@ var options = {
 
 // Run genetic algorithm
 
-setTimeout(() => {
-  ga
-    .run(options)
-    .then(result => {
-      bestOne = result.best.individual.map(item => {
-        return {
-          pessoa: pessoas[item.pessoa],
-          escola: escolas[item.escola],
-          escolaIndex: item.escola
-        };
-      });
-      console.log("Best individual's fitness: " + result.best.fitness);
-      console.log("Best individual: " + JSON.stringify(result.best.individual));
-      // console.log("Last population: %j", result.population);
-    })
-    .catch(err => {
-      console.log("Oops: " + err);
-    });
-}, 4000);
+// setTimeout(() => {
+//   ga
+//     .run(options)
+//     .then(result => {
+//       bestOne = result.best.individual.map(item => {
+//         return {
+//           pessoa: pessoas[item.pessoa],
+//           escola: escolas[item.escola],
+//           escolaIndex: item.escola
+//         };
+//       });
+//       console.log("Best individual's fitness: " + result.best.fitness);
+//       console.log("Best individual: " + JSON.stringify(result.best.individual));
+//       // console.log("Last population: %j", result.population);
+//     })
+//     .catch(err => {
+//       console.log("Oops: " + err);
+//     });
+// }, 4000);
 
 const crossover = (parent1, parent2) => {
   // console.log("crossover in", parent1, "\n", parent2, "\n");
@@ -237,9 +279,43 @@ express.use(bodyParser());
 express.get("/", function(req, res) {
   res.sendFile(path.join(__dirname + "/index.html"));
 });
+express.get("/postuser", function(req, res) {
+  res.sendFile(path.join(__dirname + "/postuser.html"));
+});
+express.get("/postlocal", function(req, res) {
+  res.sendFile(path.join(__dirname + "/postlocal.html"));
+});
+express.post("/postlocal", (req, res) => {
+  Local.save(req.body.local).then(newLocal => {
+    User.run().then(data => {
+      data.forEach(item => {
+        calcularDistancia(item, newLocal, distance => {
+          Distance.save({ userId: item.id, localId: newLocal.id, distance });
+        });
+      });
+    });
+  });
+  res.send("ok");
+});
+express.post("/postuser", (req, res) => {
+  User.save(req.body.user).then(newUser => {
+    Local.run().then(data => {
+      data.forEach(item => {
+        calcularDistancia(newUser, item, distance => {
+          Distance.save({ userId: newUser.id, localId: item.id, distance });
+        });
+      });
+    });
+  });
+  res.send("ok");
+});
 express.get("/getBest", (req, res) => {
   console.log("olha ai, chegou");
   res.setHeader("Content-Type", "application/json");
   res.json(bestOne);
 });
 express.listen(3001, () => console.log("subiu o server"));
+User.run().then(data => console.log(data));
+Local.run().then(data => console.log(data));
+
+Distance.run().then(data => console.log(data));
