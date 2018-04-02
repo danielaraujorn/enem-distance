@@ -17,7 +17,6 @@ var User = thinky.createModel("user", {
 });
 
 var Distance = thinky.createModel("distance", {
-  id: type.string().default(uuidv1()),
   userId: type.string().required(),
   localId: type.string().required(),
   distance: type.number().required()

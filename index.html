@@ -7,22 +7,24 @@
     <title>teste</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
 </head>
 
 <body style="margin:0">
     <div id="map" style="width:100vw;height:100vh;background:#eee"></div>
     <script>
+        var socket = io(location.host);
         function initMap() {
             var directionsService = new google.maps.DirectionsService()
-            var directionsDisplay = new google.maps.DirectionsRenderer();
+            var directionsRenderer = []
             function renderDirections(result, color) {
-                var directionsRenderer = new google.maps.DirectionsRenderer({
+                directionsRenderer.push(new google.maps.DirectionsRenderer({
+                    map: map,
+                    directions: result,
                     polylineOptions: {
                         strokeColor: color
                     }, suppressMarkers: true, preserveViewport: true
-                });
-                directionsRenderer.setMap(map);
-                directionsRenderer.setDirections(result);
+                }))
             }
 
             function requestDirections(color, start, end) {
@@ -31,7 +33,6 @@
                     destination: end,
                     travelMode: google.maps.DirectionsTravelMode.DRIVING
                 }, function (result, status) {
-                    console.log(result, status)
                     renderDirections(result, color);
                 });
             }
@@ -42,36 +43,48 @@
                 zoom: 15,
                 center: { lat: -5.839597, lng: -35.209195 }
             });
-            directionsDisplay.setMap(map);
-            $(document).ready(function () {
-                $.ajax({
-                    headers: { "Access-Control-Allow-Origin": "true" }, url: "http://localhost:3001/getBest", crossDomain: false, success: function (result) {
-                        console.log(result)
-                        escolasColors = []
-                        for (let i = 0; i < result.length; i++) {
-                            setTimeout(function () {
-                                if (!escolasColors[result[i].escolaIndex]) {
-                                    escolasColors[result[i].escolaIndex] = '#' + Math.floor(Math.random() * 16777215).toString(16)
-                                }
-                                pontosPessoas.push(new google.maps.Marker({
-                                    position: { lat: result[i].pessoa.lat, lng: result[i].pessoa.lng },
-                                    map: map,
-                                    icon: {
-                                        path: google.maps.SymbolPath.CIRCLE,
-                                        strokeColor: escolasColors[result[i].escolaIndex],
-                                        scale: 4
-                                    },
-                                }))
-                                pontosEscolas.push(new google.maps.Marker({
-                                    position: { lat: result[i].escola.lat, lng: result[i].escola.lng },
-                                    map: map,
-                                }))
-                                requestDirections(escolasColors[result[i].escolaIndex], new google.maps.LatLng(result[i].pessoa.lat, result[i].pessoa.lng), new google.maps.LatLng(result[i].escola.lat, result[i].escola.lng))
-                            }, i * 500)
+            socket.emit('getBest')
+
+            escolasColors = []
+            function setMapOnAll(array, map) {
+                for (var i = 0; i < array.length; i++) {
+                    array[i].setMap(map);
+                }
+            }
+            function clearMarkers(array) {
+                setMapOnAll(array, null);
+            }
+            function deleteMarkers(array) {
+                clearMarkers(array);
+                array = [];
+            }
+            socket.on('returnGetBest', (result) => {
+                console.log('chegou', result)
+                deleteMarkers(pontosPessoas)
+                deleteMarkers(pontosEscolas)
+                deleteMarkers(directionsRenderer)
+                for (let i = 0; i < result.length; i++) {
+                    setTimeout(function () {
+                        if (!escolasColors[result[i].escolaIndex]) {
+                            escolasColors[result[i].escolaIndex] = '#' + Math.floor(Math.random() * 16777215).toString(16)
                         }
-                    }
-                });
-            });
+                        pontosPessoas.push(new google.maps.Marker({
+                            position: { lat: result[i].pessoa.lat, lng: result[i].pessoa.lng },
+                            map: map,
+                            icon: {
+                                path: google.maps.SymbolPath.CIRCLE,
+                                strokeColor: escolasColors[result[i].escolaIndex],
+                                scale: 4
+                            },
+                        }))
+                        pontosEscolas.push(new google.maps.Marker({
+                            position: { lat: result[i].escola.lat, lng: result[i].escola.lng },
+                            map: map,
+                        }))
+                        requestDirections(escolasColors[result[i].escolaIndex], new google.maps.LatLng(result[i].pessoa.lat, result[i].pessoa.lng), new google.maps.LatLng(result[i].escola.lat, result[i].escola.lng))
+                    }, i * 500)
+                }
+            })
         }
     </script>
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBcMFCfbdJdD3__pdiZWMU9Ab5PS2N-pYo&callback=initMap">

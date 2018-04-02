@@ -1,4 +1,6 @@
 var express = require("express")();
+var http = require("http").Server(express);
+var io = require("socket.io")(http);
 var bodyParser = require("body-parser");
 var { ga, calcularDistancia } = require("./ga.js");
 var path = require("path");
@@ -34,24 +36,40 @@ express.get("/postuser", function(req, res) {
 express.get("/postlocal", function(req, res) {
   res.sendFile(path.join(__dirname + "/postlocal.html"));
 });
-express.post("/postlocal", (req, res) => {
-  console.log(req.body.local);
-  Local.save(req.body.local).then(newLocal => {
-    ga(data => (bestOne = data));
+express.post("/postlocal", async (req, res) => {
+  await Local.save(req.body.local).then(() => res.sendStatus(200));
+  console.log(req.body.local.name);
+  ga(data => {
+    bestOne = data;
+    io.emit("returnGetBest", data);
   });
-  res.send("ok");
 });
-express.post("/postuser", (req, res) => {
-  console.log(req.body.user);
-  User.save(req.body.user).then(newUser => {
-    ga(data => (bestOne = data));
+express.post("/postuser", async (req, res) => {
+  await User.save(req.body.user).then(() => res.sendStatus(200));
+  console.log(req.body.user.name);
+  ga(data => {
+    bestOne = data;
+    io.emit("returnGetBest", data);
   });
-  res.send("ok");
 });
 express.get("/getBest", (req, res) => {
   console.log("olha ai, chegou");
   res.setHeader("Content-Type", "application/json");
   res.json(bestOne);
 });
-express.listen(3001, () => console.log("subiu o server"));
-setTimeout(() => ga(data => (bestOne = data)), 2000);
+
+io.on("connection", function(socket) {
+  socket.on("getBest", () => {
+    // console.log("pediu os melhores");
+    socket.emit("returnGetBest", bestOne);
+  });
+  // console.log("a user is connected");
+});
+var port = process.env.PORT || 3001;
+http.listen(port, function() {
+  console.log("listening on *:" + port);
+});
+ga(data => {
+  bestOne = data;
+  io.emit("returnGetBest", data);
+});

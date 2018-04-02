@@ -9,44 +9,52 @@ var myPopulation = new Array(options.tamanhoPopulacao).fill(0);
 var distancias = Array(pessoas.length)
   .fill(0)
   .map(x => Array(escolas.length).fill(Infinity));
-const calcularDistancia = (pessoa, escola, callback) => {
-  fetch(
+const calcularDistancia = async (pessoa, escola, callback) => {
+  const data = await fetch(
     `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${
       pessoa.lat
     },${pessoa.lng}&destinations=${escola.lat},${escola.lng}${
       pessoa.locomotion ? "&mode=" + pessoa.locomotion : ""
     }&key=AIzaSyBcMFCfbdJdD3__pdiZWMU9Ab5PS2N-pYo`
-  )
-    .then(res => res.text())
-    .then(body => {
-      callback(JSON.parse(body).rows[0].elements[0].distance.value);
-    });
+  ).then(res => res.text());
+
+  await callback(JSON.parse(data).rows[0].elements[0].distance.value);
 };
-const calcularDistancias = (p, e, callback) =>
-  p.forEach((pessoa, i) => {
-    e.forEach((escola, j) => {
-      Distance.filter({ userId: pessoa.id, localId: escola.id })
-        .run()
-        .then(data => {
-          if (data && data[0]) distancias[i][j] = data[0].distance;
-          else {
+const salvarDistancia = async (p, e, callback) => {
+  Promise.all(
+    p.map(async (pessoa, i) =>
+      Promise.all(
+        e.map(async (escola, j) => {
+          const data = await Distance.filter({
+            userId: pessoa.id,
+            localId: escola.id
+          }).run();
+          if (data && data[0] && data[0].distance) {
+            distancias[i][j] = data[0].distance;
+            return true;
+          } else {
             console.log("not ok");
-            calcularDistancia(pessoa, escola, distance => {
+            await calcularDistancia(pessoa, escola, async distance => {
               distancias[i][j] = distance;
-              Distance.save({
+              console.log({
                 userId: pessoa.id,
                 localId: escola.id,
                 distance
               });
+              await Distance.save({
+                userId: pessoa.id,
+                localId: escola.id,
+                distance
+              });
+              console.log("now ok");
+              return true;
             });
           }
-          i === p.length - 1 && j === e.length - 1 && initiateGa(callback);
-        });
-      // calcularDistancia(pessoa, escola, retorno => {
-      //   distancias[i][j] = retorno;
-      // })
-    });
-  });
+        })
+      )
+    )
+  ).then(() => initiateGa(callback));
+};
 //Generate a random population somehow
 const generatePersonSchool = array => {
   let numero = Math.floor(Math.random() * array.length);
@@ -175,28 +183,14 @@ getIndividual = (key, population) => {
 
 module.exports = {
   calcularDistancia,
-  ga: callback => {
-    User.run().then(data => {
-      pessoas = data;
-      if (escolas) {
-        distancias = Array(data.length)
-          .fill(0)
-          .map(x => Array(escolas.length).fill(Infinity));
-
-        myPopulation = myPopulation.map(() => generateRandomCombination());
-        calcularDistancias(data, escolas, callback);
-      }
-    });
-    Local.run().then(data => {
-      escolas = data;
-      if (pessoas) {
-        distancias = Array(pessoas.length)
-          .fill(0)
-          .map(x => Array(data.length).fill(Infinity));
-        myPopulation = myPopulation.map(() => generateRandomCombination());
-        calcularDistancias(pessoas, data, callback);
-      }
-    });
+  ga: async callback => {
+    pessoas = await User.run();
+    escolas = await Local.run();
+    distancias = Array(pessoas.length)
+      .fill(0)
+      .map(x => Array(escolas.length).fill(Infinity));
+    myPopulation = myPopulation.map(() => generateRandomCombination());
+    salvarDistancia(pessoas, escolas, callback);
   }
 };
 
@@ -209,7 +203,8 @@ const initiateGa = callback => {
           return {
             pessoa: pessoas[item.pessoa],
             escola: escolas[item.escola],
-            distance: distancias[item.pessoa][item.escola]
+            distance: distancias[item.pessoa][item.escola],
+            escolaIndex: item.escola
           };
         })
       );
@@ -219,8 +214,8 @@ const initiateGa = callback => {
           JSON.stringify(
             result.best.individual.map(item => {
               return {
-                pessoa: pessoas[item.pessoa],
-                escola: escolas[item.escola],
+                pessoa: pessoas[item.pessoa].name,
+                escola: escolas[item.escola].name,
                 distance: distancias[item.pessoa][item.escola]
               };
             })

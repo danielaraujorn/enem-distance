@@ -1,5 +1,5 @@
 module.exports = {
-  tamanhoPopulacao: 10,
-  interacoes: 1000,
+  tamanhoPopulacao: 14,
+  interacoes: 40000,
   elitismo: true
 };
