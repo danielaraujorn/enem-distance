@@ -30,12 +30,12 @@ const salvarDistancia = async (p, e, callback) => {
             localId: escola.id
           }).run();
           if (data && data[0] && data[0].distance) {
-            distancias[i][j] = data[0].distance;
+            distancias[i][j] = data[0].distance ^ 2;
             return true;
           } else {
             console.log("not ok");
             await calcularDistancia(pessoa, escola, async distance => {
-              distancias[i][j] = distance;
+              distancias[i][j] = distance ^ 2;
               console.log({
                 userId: pessoa.id,
                 localId: escola.id,
@@ -43,8 +43,7 @@ const salvarDistancia = async (p, e, callback) => {
               });
               await Distance.save({
                 userId: pessoa.id,
-                localId: escola.id,
-                distance
+                localId: escola.id
               });
               console.log("now ok");
               return true;
@@ -55,10 +54,8 @@ const salvarDistancia = async (p, e, callback) => {
     )
   ).then(() => initiateGa(callback));
 };
-//Generate a random population somehow
 const generatePersonSchool = array => {
   let numero = Math.floor(Math.random() * array.length);
-  //   console.log(array[numero]);
   return array[numero];
 };
 const generateRandomCombination = () => {
@@ -68,8 +65,6 @@ const generateRandomCombination = () => {
   let escolasCopy = [...escolas].map((item, indice) =>
     Object.assign({}, item, { indice })
   );
-  //   console.log(escolasCopy);
-  //   console.log(pessoasCopy, escolasCopy);
   return [
     ...pessoas.map(item => {
       let pessoa = generatePersonSchool(pessoasCopy).indice;
@@ -90,8 +85,6 @@ const generateRandomCombination = () => {
   ];
 };
 var config = {
-  // Always copy over best individual without modification
-  // to the next generation.
   elitist: options.elitismo,
   fitness: individual => {
     return new Promise((resolve, reject) => {
@@ -119,13 +112,9 @@ var config = {
     //     10000000 / fitnesses.reduce((prev, item) => prev + item) +
     //     "\n"
     // );
-    // console.log(fitnesses, "\n");
-    // console.log("Best performing individual: %j", best);
   }
 };
 const crossover = (parent1, parent2) => {
-  // console.log("crossover in", parent1, "\n", parent2, "\n");
-
   let capacitys = escolas.map((item, i) => item.capacity);
   const findSchollCapacity = item => {
     if (capacitys[item.escola]) {
@@ -147,7 +136,6 @@ const crossover = (parent1, parent2) => {
       return a.pessoa - b.pessoa;
     })
     .map((item, i) => {
-      // console.log(item, parent2Copy[i]);
       if (
         distancias[item.pessoa][item.escola] >
         distancias[parent2Copy[i].pessoa][parent2Copy[i].escola]
@@ -221,7 +209,6 @@ const initiateGa = callback => {
             })
           )
       );
-      // console.log("Last population: %j", result.population);
     })
     .catch(err => {
       console.log("Oops: " + err);
